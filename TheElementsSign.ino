@@ -47,11 +47,23 @@ void setup() {
 void checkLightLevelPot() {
 	int potLightLevel = analogRead(A1);
 	potLightLevel = map(potLightLevel, 0, 1023, 1, 255);
-	if ((potLightLevelLast-potLightLevel > 10) || (potLightLevelLast-potLightLevel < -10)) {
+	//To avaoid flicker, only change level if +/-4 steps
+	if ((potLightLevelLast-potLightLevel > 4) || (potLightLevelLast-potLightLevel < -4)) {
 		Serial.print("Light level changed to ");
 		Serial.println(potLightLevel);
 		ws2812fx.setBrightness(potLightLevel);
 		potLightLevelLast = potLightLevel;
+	}
+
+	int potSpeed = analogRead(A2);
+	potSpeed = map(potSpeed, 0, 1023, 255, 80);
+	//To avaoid flicker, only change speed if +/-4 steps
+	if ((potSpeedLast-potSpeed > 4) || (potSpeedLast-potSpeed < -4)) {
+		Serial.print("Speed changed to ");
+		Serial.println(potSpeed);
+		speed = potSpeed;
+		potSpeedLast = potSpeed;
+		changeMode();
 	}
 }
 
@@ -98,19 +110,19 @@ void changeMode() {
 			uint32_t waterColors[] = {0x0011FF, 0x0055FF, 0x0000FF};
 			uint32_t earthColors[] = {0x00FF00, 0x00FF00, 0x44FF44};
 			// parameters:   index, start,                stop,                                         mode,                         color,    speed, reverse
-			ws2812fx.setSegment(0,  ELEMENT_FIRE_START,   ELEMENT_FIRE_START+ELEMENT_FIRE_LENGTH-1,     FX_MODE_FIRE_FLICKER_INTENSE, 0xFF6600, 500, false);
-			ws2812fx.setSegment(1,  ELEMENT_AIR_START,    ELEMENT_AIR_START+ELEMENT_AIR_LENGTH-1,       FX_MODE_BREATH,               0xFF7700, 8000, false);
-			ws2812fx.setSegment(2,  ELEMENT_WATER_START,  ELEMENT_WATER_START+ELEMENT_WATER_LENGTH-1,   FX_MODE_TRICOLOR_CHASE,       waterColors, 1200, false);
-			ws2812fx.setSegment(3,  ELEMENT_EARTH_START,  ELEMENT_EARTH_START+ELEMENT_EARTH_LENGTH-1,   FX_MODE_TRICOLOR_CHASE,       earthColors, 2000, true);
-			ws2812fx.setSegment(4,  ELEMENT_EATHER_START, ELEMENT_EATHER_START+ELEMENT_EATHER_LENGTH-1, FX_MODE_COMET,                0x9900FF, 800, false);
+			ws2812fx.setSegment(0,  ELEMENT_FIRE_START,   ELEMENT_FIRE_START+ELEMENT_FIRE_LENGTH-1,     FX_MODE_FIRE_FLICKER_INTENSE, 0xFF6600, speed*4, false);
+			ws2812fx.setSegment(1,  ELEMENT_AIR_START,    ELEMENT_AIR_START+ELEMENT_AIR_LENGTH-1,       FX_MODE_BREATH,               0xFF7700, speed*60, false);
+			ws2812fx.setSegment(2,  ELEMENT_WATER_START,  ELEMENT_WATER_START+ELEMENT_WATER_LENGTH-1,   FX_MODE_TRICOLOR_CHASE,       waterColors, speed*9, false);
+			ws2812fx.setSegment(3,  ELEMENT_EARTH_START,  ELEMENT_EARTH_START+ELEMENT_EARTH_LENGTH-1,   FX_MODE_TRICOLOR_CHASE,       earthColors, speed*15, true);
+			ws2812fx.setSegment(4,  ELEMENT_EATHER_START, ELEMENT_EATHER_START+ELEMENT_EATHER_LENGTH-1, FX_MODE_COMET,                0x9900FF, speed*6, false);
 			if (mode == 2) {
-				ws2812fx.setSegment(5,  ELEMENTS_START,   ELEMENTS_START+ELEMENTS_LENGTH-1,             FX_MODE_STATIC,               0xFFFF99, 1000, false);
+				ws2812fx.setSegment(5,  ELEMENTS_START,   ELEMENTS_START+ELEMENTS_LENGTH-1,             FX_MODE_STATIC,               0xFFFF99, speed*8, false);
 			}
 			if (mode == 3) {
-				ws2812fx.setSegment(5,  ELEMENTS_START,   ELEMENTS_START+ELEMENTS_LENGTH-1,             FX_MODE_RAINBOW_CYCLE,        0xFFFF99, 1000, false);
+				ws2812fx.setSegment(5,  ELEMENTS_START,   ELEMENTS_START+ELEMENTS_LENGTH-1,             FX_MODE_RAINBOW_CYCLE,        0xFFFF99, speed*8, false);
 			}
 			if (mode == 4) {
-				ws2812fx.setSegment(5,  ELEMENTS_START,   ELEMENTS_START+ELEMENTS_LENGTH-1,             FX_MODE_SPARKLE,  0xFFFF99, 1000, false);
+				ws2812fx.setSegment(5,  ELEMENTS_START,   ELEMENTS_START+ELEMENTS_LENGTH-1,             FX_MODE_SPARKLE,              0xFFFF99, speed*8, false);
 			}
 			break;
 	}
