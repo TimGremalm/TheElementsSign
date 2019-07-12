@@ -6,16 +6,18 @@
 #define WS2812PIXELS 70
 
 //Button for changing mode
-#define BUTTONPIN 13
-bool buttonHasBeenRelesed = true;
-unsigned long buttonLastReleasedTime;
+#define BUTTON_1_PIN 13
+int buttonPins[] = {12, 11, 10, 9, 8, 7, 6, 5};
 
 //Lighting Mode
 int mode = 0;
-#define MODEMAX 4
+int modeLast = -1;
+int speed = -10;
+
+int potLightLevelLast = -10;
+int potSpeedLast = -10;
 
 //Light configuration
-#define LIGHTLEVEL 20
 #define ELEMENT_FIRE_START 0
 #define ELEMENT_FIRE_LENGTH 8
 #define ELEMENT_AIR_START 10
@@ -33,42 +35,41 @@ WS2812FX ws2812fx = WS2812FX(WS2812PIXELS, WS2812PIN, NEO_GRB + NEO_KHZ800);
 
 void setup() {
 	Serial.begin(115200);
-	Serial.print("Start Elements light");
-	pinMode(BUTTONPIN, INPUT);
+	Serial.println("Start Elements light");
+	for (int i=0; i < 8; i++) {
+		pinMode(buttonPins[i], INPUT);
+	}
 	ws2812fx.init();
-	ws2812fx.setBrightness(LIGHTLEVEL);
+	ws2812fx.setBrightness(1);
 	ws2812fx.start();
-	changeMode();
 }
 
 void checkLightLevelPot() {
-	int potLightLevel = analogRead(A0);
-	potLightLevel = map(potLightLevelValue, 0, 700, 0, 255);
-	Serial.println(potLightLevel);
+	int potLightLevel = analogRead(A1);
+	potLightLevel = map(potLightLevel, 0, 1023, 1, 255);
+	if ((potLightLevelLast-potLightLevel > 10) || (potLightLevelLast-potLightLevel < -10)) {
+		Serial.print("Light level changed to ");
+		Serial.println(potLightLevel);
+		ws2812fx.setBrightness(potLightLevel);
+		potLightLevelLast = potLightLevel;
+	}
 }
 
 void checkModeButton() {
-	int buttonState = digitalRead(BUTTONPIN);
-	if (buttonState) {
-		// Reset buton release to now
-		buttonLastReleasedTime = millis();
-		buttonHasBeenRelesed = true;
-	} else {
-		// Make sure button is pushed down for at least some milliseconds
-		if (millis()-buttonLastReleasedTime > 50) {
-			if (buttonHasBeenRelesed) {
-				buttonHasBeenRelesed = false;
-				changeMode();
-			}
+	int buttonState = 0;
+	for (int i=0; i < 8; i++) {
+		buttonState = digitalRead(buttonPins[i]);
+		if (!buttonState) {
+			mode = i;
 		}
+	}
+	if (mode != modeLast) {
+		changeMode();
+		modeLast = mode;
 	}
 }
 
 void changeMode() {
-	mode += 1;
-	if (mode >= MODEMAX) {
-		mode = 0;
-	}
 	Serial.print("Changed mode to ");
 	Serial.println(mode);
 	ws2812fx.resetSegments();
@@ -93,6 +94,7 @@ void changeMode() {
 
 		case 2: //Animated elements - static text
 		case 3: //Animated elements - rainbow text
+		case 4: //Animated elements - sparkle text
 			uint32_t waterColors[] = {0x0011FF, 0x0055FF, 0x0000FF};
 			uint32_t earthColors[] = {0x00FF00, 0x00FF00, 0x44FF44};
 			// parameters:   index, start,                stop,                                         mode,                         color,    speed, reverse
@@ -106,6 +108,9 @@ void changeMode() {
 			}
 			if (mode == 3) {
 				ws2812fx.setSegment(5,  ELEMENTS_START,   ELEMENTS_START+ELEMENTS_LENGTH-1,             FX_MODE_RAINBOW_CYCLE,        0xFFFF99, 1000, false);
+			}
+			if (mode == 4) {
+				ws2812fx.setSegment(5,  ELEMENTS_START,   ELEMENTS_START+ELEMENTS_LENGTH-1,             FX_MODE_SPARKLE,  0xFFFF99, 1000, false);
 			}
 			break;
 	}
